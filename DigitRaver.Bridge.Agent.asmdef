@@ -1,0 +1,27 @@
+{
+    "name": "DigitRaver.Bridge.Agent",
+    "rootNamespace": "DigitRaver.Bridge.Agent",
+    "references": [
+        "DigitRaver.Bridge.Shared",
+        "DigitRaver.Bridge",
+        "DigitRaver.Auth",
+        "UniTask",
+        "Newtonsoft.Json",
+        "PerSpec.Runtime.Debug",
+        "ACTk.Runtime",
+        "DigitRaver.States",
+        "DigitRaver.Env",
+        "DigitRaver.Bridge.FirebaseIsolation"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "BRIDGE_ENABLED"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
