@@ -175,8 +175,14 @@ namespace DigitRaver.Bridge.Agent
             if (ObscuredPrefs.HasKey(PrefKeyModel))
                 model = ObscuredPrefs.Get(PrefKeyModel, model);
 
-            if (ObscuredPrefs.HasKey(PrefKeyApiKey))
-                apiKey = ObscuredPrefs.Get(PrefKeyApiKey, apiKey);
+            // SO apiKey is primary; ObscuredPrefs is fallback only if SO is empty
+            if (string.IsNullOrEmpty(apiKey) && ObscuredPrefs.HasKey(PrefKeyApiKey))
+            {
+                var savedKey = ObscuredPrefs.Get(PrefKeyApiKey, "");
+                if (!string.IsNullOrEmpty(savedKey))
+                    apiKey = savedKey;
+            }
+            // else: keep SO-baked apiKey value
 
             if (ObscuredPrefs.HasKey(PrefKeyBaseUrl))
                 baseUrl = ObscuredPrefs.Get(PrefKeyBaseUrl, baseUrl);
@@ -258,7 +264,7 @@ namespace DigitRaver.Bridge.Agent
         private void ClearOnPlayModeExit()
         {
             enabled = false;
-            apiKey = string.Empty;
+            // apiKey = string.Empty;
         }
 
         [ContextMenu("Import System Prompt from MD")]

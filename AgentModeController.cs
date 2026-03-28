@@ -694,7 +694,16 @@ namespace DigitRaver.Bridge.Agent
                             var result = await _toolExecutor.ExecuteAsync(toolCall, ct);
                             // null means DirectToolExecutor handled the result internally (e.g., vision image injection)
                             if (result != null)
+                            {
                                 _conversation.AddToolResult(toolCall.Id, result);
+
+                                // Log tool result (truncated for large responses)
+                                if (_config.logToolCalls)
+                                {
+                                    var truncated = result.Length > 500 ? result.Substring(0, 500) + "..." : result;
+                                    PerSpecDebug.Log($"[AgentMode] Tool result: {toolCall.Name} → {truncated}");
+                                }
+                            }
 
                             if (_toolCallsThisCycle >= _config.maxToolCallsPerCycle)
                                 break;
