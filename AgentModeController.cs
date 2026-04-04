@@ -695,7 +695,7 @@ namespace DigitRaver.Bridge.Agent
                             // null means DirectToolExecutor handled the result internally (e.g., vision image injection)
                             if (result != null)
                             {
-                                _conversation.AddToolResult(toolCall.Id, result);
+                                _conversation.AddToolResult(toolCall.Id, toolCall.Name, result);
 
                                 // Log tool result (truncated for large responses)
                                 if (_config.logToolCalls)

@@ -86,7 +86,7 @@ namespace DigitRaver.Bridge.Agent
                         var estimatedTokens = result.Payload["estimatedTokens"]?.Value<int>() ?? 0;
                         var summaryText = $"Screenshot captured: {width}x{height}, {sizeBytes} bytes, ~{estimatedTokens} tokens";
 
-                        _conversation.AddToolResultWithImage(toolCall.Id, summaryText, imageBase64, width, height);
+                        _conversation.AddToolResultWithImage(toolCall.Id, toolCall.Name, summaryText, imageBase64, width, height);
                         return null; // Signal that tool result was handled internally
                     }
                 }
