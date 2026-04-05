@@ -98,6 +98,22 @@ namespace DigitRaver.Bridge.Agent
 
         #endregion
 
+        #region Waypoint Rewards
+
+        [Header("Waypoint Rewards")]
+        [Tooltip("Grant blurbs AND blasts when agent arrives at a named waypoint")]
+        public bool waypointRewardEnabled = true;
+
+        [Tooltip("Amount of blurbs AND blasts to grant per waypoint arrival")]
+        [Range(1, 50)]
+        public int waypointRewardAmount = 20;
+
+        [Tooltip("XZ distance in meters to match a named waypoint")]
+        [Range(1f, 10f)]
+        public float waypointMatchTolerance = 3f;
+
+        #endregion
+
         #region Agentic Build
 
         [Header("Agentic Build")]

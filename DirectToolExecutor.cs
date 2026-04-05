@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DigitRaver.Bridge.LoopbackWS;
+using DigitRaver.Env;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using PerSpec;
@@ -17,15 +18,24 @@ namespace DigitRaver.Bridge.Agent
         private readonly IReadOnlyDictionary<string, IDomainHandler> _handlers;
         private readonly ConversationManager _conversation;
         private readonly int _timeoutMs;
+        private readonly AgentModeConfig _config;
+        private readonly IAPEvents _iapEvents;
+        private readonly Action<string> _queueNudge;
 
         public DirectToolExecutor(
             IReadOnlyDictionary<string, IDomainHandler> handlers,
             ConversationManager conversation,
-            int timeoutMs = 30000)
+            AgentModeConfig config,
+            IAPEvents iapEvents,
+            int timeoutMs = 30000,
+            Action<string> queueNudge = null)
         {
             _handlers = handlers;
             _conversation = conversation;
+            _config = config;
+            _iapEvents = iapEvents;
             _timeoutMs = timeoutMs;
+            _queueNudge = queueNudge;
         }
 
         /// <summary>
@@ -34,6 +44,27 @@ namespace DigitRaver.Bridge.Agent
         /// </summary>
         public async UniTask<string> ExecuteAsync(ToolCall toolCall, CancellationToken ct)
         {
+            // Handle compound tools before domain routing
+            if (toolCall.Name == "nav__walk_to_and_wait")
+            {
+                var destArray = toolCall.Input?["destination"] as JArray;
+                if (destArray == null || destArray.Count != 3)
+                    return JsonConvert.SerializeObject(new { error = "destination must be [x, y, z]" });
+
+                var destination = new float[]
+                {
+                    destArray[0].Value<float>(),
+                    destArray[1].Value<float>(),
+                    destArray[2].Value<float>()
+                };
+
+                var tolerance = toolCall.Input?["tolerance"]?.Value<float>() ?? 2.0f;
+                var maxWaitMs = toolCall.Input?["maxWaitMs"]?.Value<int>() ?? 30000;
+                const int pollIntervalMs = 500;
+
+                return await WalkToAndWaitAsync(destination, tolerance, pollIntervalMs, maxWaitMs, ct);
+            }
+
             // Parse tool name: domain__action → domain, action
             var parts = toolCall.Name.Split(new[] { "__" }, 2, StringSplitOptions.None);
             if (parts.Length != 2)
@@ -248,13 +279,61 @@ namespace DigitRaver.Bridge.Agent
 
                         if (distance <= toleranceMeters)
                         {
-                            return JsonConvert.SerializeObject(new
+                            // Check for waypoint reward
+                            string matchedWaypointName = null;
+                            string rewardType = null;
+                            int rewardAmount = 0;
+                            bool rewardGranted = false;
+
+                            if (_config != null && _config.waypointRewardEnabled && _iapEvents != null && NavMeshBakedData.instance != null)
                             {
-                                success = true,
-                                destination = destination,
-                                finalPosition = position,
-                                distance = distance
-                            });
+                                var waypoints = NavMeshBakedData.instance.Waypoints;
+                                foreach (var wp in waypoints)
+                                {
+                                    var wpDx = position[0] - wp.position.x;
+                                    var wpDz = position[2] - wp.position.z;
+                                    var wpDist = (float)Math.Sqrt(wpDx * wpDx + wpDz * wpDz);
+                                    if (wpDist <= _config.waypointMatchTolerance)
+                                    {
+                                        matchedWaypointName = wp.name;
+                                        break;
+                                    }
+                                }
+
+                                if (!string.IsNullOrEmpty(matchedWaypointName))
+                                {
+                                    // Grant BOTH blurbs AND blasts
+                                    rewardAmount = _config.waypointRewardAmount;
+                                    rewardType = "blurbs+blasts";
+
+                                    _iapEvents.ChangeQuantity(IAPItem.blurbs, rewardAmount);
+                                    _iapEvents.ChangeQuantity(IAPItem.blasts, rewardAmount);
+                                    rewardGranted = true;
+
+                                    PerSpecDebug.Log($"[AgentMode] Waypoint reward: +{rewardAmount} blurbs AND +{rewardAmount} blasts for '{matchedWaypointName}'");
+
+                                    // Notify agent via nudge
+                                    _queueNudge?.Invoke($"You arrived at '{matchedWaypointName}' and received +{rewardAmount} blurbs and +{rewardAmount} blasts! Use them to interact.");
+                                }
+                            }
+
+                            var result = new JObject
+                            {
+                                ["success"] = true,
+                                ["destination"] = new JArray(destination[0], destination[1], destination[2]),
+                                ["finalPosition"] = new JArray(position[0], position[1], position[2]),
+                                ["distance"] = distance
+                            };
+
+                            if (rewardGranted)
+                            {
+                                result["rewardGranted"] = true;
+                                result["rewardType"] = rewardType;
+                                result["rewardAmount"] = rewardAmount;
+                                result["waypointName"] = matchedWaypointName;
+                            }
+
+                            return result.ToString(Formatting.Indented);
                         }
                     }
                 }

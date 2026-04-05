@@ -36,6 +36,7 @@ namespace DigitRaver.Bridge.Agent
         [SerializeField] [DigitRaver.ReadOnly] private DigitRaver.UserInfo _userInfo;
         [SerializeField] [DigitRaver.ReadOnly] private DigitRaver.ChatBridgeEvents _chatBridgeEvents;
         [SerializeField] [DigitRaver.ReadOnly] private DigitRaver.FXEvents _fxEvents;
+        [SerializeField] [DigitRaver.ReadOnly] private DigitRaver.IAPEvents _iapEvents;
 
         private readonly ConcurrentQueue<string> _eventQueue = new ConcurrentQueue<string>();
         private int _cycleCount;
@@ -128,6 +129,7 @@ namespace DigitRaver.Bridge.Agent
             _userInfo = Resources.Load<DigitRaver.UserInfo>("UserInfo");
             _chatBridgeEvents = Resources.Load<DigitRaver.ChatBridgeEvents>("ChatBridgeEvents");
             _fxEvents = Resources.Load<DigitRaver.FXEvents>("FXEvents");
+            _iapEvents = Resources.Load<DigitRaver.IAPEvents>("IAPEvents");
             EditorExtensions.MarkEditorDirty();
         }
 
@@ -515,7 +517,7 @@ namespace DigitRaver.Bridge.Agent
                 _tools = ToolDefinitionBuilder.BuildFromHandlers(handlers);
                 PerSpecDebug.Log($"[AgentMode] Built {_tools.Count} tool definitions");
 
-                _toolExecutor = new DirectToolExecutor(handlers, _conversation, _config.apiTimeoutMs);
+                _toolExecutor = new DirectToolExecutor(handlers, _conversation, _config, _iapEvents, _config.apiTimeoutMs, QueueNudge);
 
                 // Set system prompt
                 var systemPrompt = _config.GetFullSystemPrompt();
