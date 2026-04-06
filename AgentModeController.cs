@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DigitRaver.Bridge.LoopbackWS;
+using DigitRaver.Bridge.Shared;
 using DigitRaver.Env;
 using Firebase.Auth;
 using Newtonsoft.Json.Linq;
@@ -94,7 +95,11 @@ namespace DigitRaver.Bridge.Agent
             if (_fxEvents != null)
             {
                 _fxEvents.OnBlurbDispatch += HandleBlurbDispatch;
+                _fxEvents.OnTitleDepleted += HandleBlurbsDepleted;
+                _fxEvents.OnBlasterDepleted += HandleBlastersDepleted;
             }
+
+            AgentModeStatus.OnBridgeAgentHit += HandleBridgeAgentHit;
 
             // Handle agentic build initialization BEFORE enabling agent mode
             if (_config.isAgenticBuild)
@@ -156,7 +161,11 @@ namespace DigitRaver.Bridge.Agent
             if (_fxEvents != null)
             {
                 _fxEvents.OnBlurbDispatch -= HandleBlurbDispatch;
+                _fxEvents.OnTitleDepleted -= HandleBlurbsDepleted;
+                _fxEvents.OnBlasterDepleted -= HandleBlastersDepleted;
             }
+
+            AgentModeStatus.OnBridgeAgentHit -= HandleBridgeAgentHit;
         }
 
         private void OnConfigEnabled()
@@ -465,6 +474,27 @@ namespace DigitRaver.Bridge.Agent
             var nudge = $"[Blurb FX from {payload.OwnerID}]: {payload.TitleContent}";
             QueueNudge(nudge);
             PerSpecDebug.Log($"[AgentMode] Blurb event queued: {nudge}");
+        }
+
+        private void HandleBridgeAgentHit()
+        {
+            if (!_isRunning) return;
+            QueueNudge("[System]: You've been hit! You died and will respawn.");
+            PerSpecDebug.Log("[AgentMode] Bridge agent hit nudge queued");
+        }
+
+        private void HandleBlurbsDepleted()
+        {
+            if (!_isRunning) return;
+            QueueNudge("[System]: You've run out of blurbs! Visit waypoints using nav__walk_to_and_wait to earn more.");
+            PerSpecDebug.Log("[AgentMode] Blurbs depleted nudge queued");
+        }
+
+        private void HandleBlastersDepleted()
+        {
+            if (!_isRunning) return;
+            QueueNudge("[System]: You've run out of blasts! Visit waypoints using nav__walk_to_and_wait to earn more.");
+            PerSpecDebug.Log("[AgentMode] Blasts depleted nudge queued");
         }
 
         #endregion
