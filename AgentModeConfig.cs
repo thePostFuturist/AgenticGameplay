@@ -40,6 +40,21 @@ namespace DigitRaver.Bridge.Agent
         [Tooltip("Model for STT transcription (default: gemini-2.0-flash)")]
         public string sttModel = "gemini-2.0-flash";
 
+        #endregion
+
+        #region TTS Settings
+
+        [Header("TTS Settings")]
+        [Tooltip("Model for TTS synthesis (default: gemini-2.5-flash-preview-tts)")]
+        public string ttsModel = "gemini-2.5-flash-preview-tts";
+
+        [Tooltip("Voice pool for TTS - 6 distinct voices for hash-based assignment")]
+        public string[] ttsVoicePool = new[] { "Puck", "Charon", "Fenrir", "Kore", "Orus", "Leda" };
+
+        #endregion
+
+        #region PlayerPrefs
+
         // PlayerPrefs keys
         private const string PrefKeyProvider = "AgentMode_Provider";
         private const string PrefKeyModel = "AgentMode_Model";
